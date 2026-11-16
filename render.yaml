@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: voyage-travel-intelligence
+    runtime: docker
+    plan: starter
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PORT
+        value: 10000
