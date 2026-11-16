@@ -1,11 +1,9 @@
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from sentence_transformers import SentenceTransformer
 
 
 ROOT = Path(__file__).parent
@@ -33,6 +31,10 @@ def load_flight_model():
 
 @st.cache_resource
 def load_gender_model():
+    # Delay PyTorch/SentenceTransformer imports until the classifier is requested.
+    # This keeps the app's normal startup within Render's free-instance memory.
+    from sentence_transformers import SentenceTransformer
+
     artifact = joblib.load(ROOT / "name_gender_classifier.pkl")
     encoder = artifact["label_encoder"] if "label_encoder" in artifact else joblib.load(ROOT / "label_encoder.pkl")
     classifier = artifact["classifier"] if "classifier" in artifact else joblib.load(ROOT / "classifier.pkl")
