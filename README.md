@@ -12,7 +12,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The first gender classification loads `sentence-transformers/all-MiniLM-L6-v2`; this downloads the embedding model and can take a few minutes.
+The name classifier trains a compact character n-gram model from the labeled names in `users.csv` when first opened. It does not download a separate language model.
 
 ## Deploy to Render
 

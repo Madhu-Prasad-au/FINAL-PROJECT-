@@ -4,6 +4,9 @@ import joblib
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 
 
 ROOT = Path(__file__).parent
@@ -31,15 +34,18 @@ def load_flight_model():
 
 @st.cache_resource
 def load_gender_model():
-    # Delay PyTorch/SentenceTransformer imports until the classifier is requested.
-    # This keeps the app's normal startup within Render's free-instance memory.
-    from sentence_transformers import SentenceTransformer
-
-    artifact = joblib.load(ROOT / "name_gender_classifier.pkl")
-    encoder = artifact["label_encoder"] if "label_encoder" in artifact else joblib.load(ROOT / "label_encoder.pkl")
-    classifier = artifact["classifier"] if "classifier" in artifact else joblib.load(ROOT / "classifier.pkl")
-    embedder = SentenceTransformer(artifact.get("model_name", "sentence-transformers/all-MiniLM-L6-v2"))
-    return classifier, encoder, embedder
+    # Fit a compact character n-gram classifier from the included labeled names.
+    # It avoids downloading a transformer model and runs within a small instance.
+    _, _, users = load_data()
+    names = users["name"].fillna("").astype(str).str.strip().str.split().str[0]
+    labels = users["gender"].fillna("").astype(str).str.strip().str.lower()
+    valid = names.ne("") & labels.ne("") & labels.ne("none")
+    model = Pipeline([
+        ("characters", TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 5), min_df=1, max_features=12000)),
+        ("classifier", LogisticRegression(max_iter=500, class_weight="balanced")),
+    ])
+    model.fit(names[valid], labels[valid])
+    return model
 
 
 def hero():
@@ -76,8 +82,28 @@ if page == "Overview":
         route = flights.assign(route=flights["from"] + " → " + flights["to"]).groupby("route").agg(bookings=("price", "size"), fare=("price", "mean")).nlargest(10, "bookings").reset_index()
         st.plotly_chart(px.bar(route, x="route", y="bookings", color="fare", color_continuous_scale="Tealgrn", title="Most traveled routes", labels={"route":"Route", "bookings":"Bookings", "fare":"Average fare"}), use_container_width=True)
     with right:
+        st.plotly_chart(px.histogram(flights, x="price", nbins=35, color_discrete_sequence=["#168b8b"], title="Flight fare distribution", labels={"price":"Fare"}), use_container_width=True)
+    left, right = st.columns(2)
+    with left:
         by_type = flights.groupby("flightType", as_index=False)["price"].mean().sort_values("price", ascending=False)
         st.plotly_chart(px.bar(by_type, x="flightType", y="price", color="flightType", title="Average fare by cabin", labels={"flightType":"Cabin", "price":"Average fare"}), use_container_width=True, show_plotly_logo=False)
+    with right:
+        sample = flights.sample(min(2500, len(flights)), random_state=42)
+        st.plotly_chart(px.scatter(sample, x="distance", y="price", color="flightType", opacity=.6, title="Fare vs. flight distance", labels={"distance":"Distance (km)", "price":"Fare", "flightType":"Cabin"}), use_container_width=True)
+    left, right = st.columns(2)
+    with left:
+        agencies = flights.groupby("agency", as_index=False).agg(average_fare=("price", "mean"), flights=("price", "size")).sort_values("average_fare", ascending=False)
+        st.plotly_chart(px.bar(agencies, x="agency", y="average_fare", color="flights", color_continuous_scale="Tealgrn", title="Average fare by agency", labels={"agency":"Agency", "average_fare":"Average fare", "flights":"Flight records"}), use_container_width=True)
+    with right:
+        hotel_places = hotels.groupby("place", as_index=False).agg(median_price=("price", "median"), stays=("price", "size")).nlargest(10, "stays")
+        st.plotly_chart(px.bar(hotel_places, x="place", y="median_price", color="stays", color_continuous_scale="Tealgrn", title="Hotel prices in popular destinations", labels={"place":"Destination", "median_price":"Median nightly price", "stays":"Historical stays"}), use_container_width=True)
+    left, right = st.columns(2)
+    with left:
+        gender_counts = users[users["gender"].astype(str).str.lower() != "none"]["gender"].value_counts().rename_axis("gender").reset_index(name="travelers")
+        st.plotly_chart(px.pie(gender_counts, names="gender", values="travelers", hole=.48, title="Traveler labels in the dataset", color_discrete_sequence=["#168b8b", "#f0a45d"]), use_container_width=True)
+    with right:
+        monthly = flights.assign(month=pd.to_datetime(flights["date"], errors="coerce").dt.month).dropna(subset=["month"]).groupby("month", as_index=False)["price"].mean()
+        st.plotly_chart(px.line(monthly, x="month", y="price", markers=True, title="Average fare by travel month", labels={"month":"Month", "price":"Average fare"}), use_container_width=True)
     st.caption("Prices and model outputs reflect the historical data supplied with this project.")
 
 elif page == "Flight price":
@@ -111,11 +137,11 @@ elif page == "Name classifier":
             st.warning("Enter a name to continue.")
         else:
             with st.spinner("Preparing name features…"):
-                classifier, encoder, embedder = load_gender_model()
-                vector = embedder.encode([first_name], show_progress_bar=False)
-                prediction = classifier.predict(vector)
-                label = encoder.inverse_transform(prediction)[0]
-            st.success(f"Model prediction: **{label}**")
+                classifier = load_gender_model()
+                label = classifier.predict([first_name])[0]
+                confidence = float(classifier.predict_proba([first_name]).max())
+            st.success(f"Model prediction: **{label.title()}**")
+            st.caption(f"Model confidence: {confidence:.0%}. This reflects the training data and may be wrong.")
 
 elif page == "Hotel finder":
     st.subheader("Find a stay that fits")
