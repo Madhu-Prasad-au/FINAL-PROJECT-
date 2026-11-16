@@ -10,6 +10,8 @@ from sklearn.pipeline import Pipeline
 
 
 ROOT = Path(__file__).parent
+px.defaults.template = "plotly_white"
+px.defaults.color_discrete_sequence = ["#087e83", "#e4a56d", "#496f84", "#9db7ad", "#7b88aa"]
 
 
 @st.cache_data
@@ -51,15 +53,42 @@ def load_gender_model():
 def hero():
     st.markdown("""
     <style>
-    .stApp {background: #f5f7fb;}
-    .block-container {max-width: 1180px; padding-top: 2rem;}
-    .hero {padding: 1.5rem 1.8rem; border-radius: 18px; color: white;
-      background: linear-gradient(115deg,#102b46,#126a73); margin-bottom: 1.2rem;}
-    .hero h1 {margin: 0 0 .25rem 0; font-size: 2.2rem;}
-    .hero p {margin: 0; opacity: .85;}
-    div[data-testid="stMetric"] {background:white;padding:1rem;border-radius:14px;border:1px solid #e8edf3;}
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+    :root { --ink:#172b3a; --muted:#6d7d89; --teal:#087e83; --mint:#dff4ef; --line:#e5eceb; }
+    .stApp {background:linear-gradient(180deg,#f4f8f7 0%,#f7f8fa 34rem,#f7f8fa 100%); color:var(--ink);}
+    html, body, [class*="css"] {font-family:'DM Sans',sans-serif;}
+    h1,h2,h3 {font-family:'Manrope',sans-serif; color:var(--ink); letter-spacing:-.035em;}
+    .block-container {max-width:1320px; padding:2.2rem 3rem 4rem;}
+    [data-testid="stSidebar"] {background:#102c3b; border-right:0;}
+    [data-testid="stSidebar"] > div:first-child {padding-top:1.4rem;}
+    [data-testid="stSidebar"] * {color:#eaf4f2;}
+    [data-testid="stSidebar"] [data-testid="stRadio"] label {padding:.55rem .7rem; border-radius:10px;}
+    [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {background:#1b4150;}
+    .brand {display:flex;align-items:center;gap:.7rem;padding:.3rem .5rem 1.2rem;margin-bottom:1.1rem;border-bottom:1px solid #34505c;}
+    .brand-mark {width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:#b8e6d8;color:#123b42;font-size:21px;}
+    .brand-name {font:800 20px Manrope,sans-serif;letter-spacing:-.04em;color:white;}
+    .brand-caption {font-size:11px;color:#aac1c5;letter-spacing:.13em;text-transform:uppercase;}
+    .hero {position:relative;overflow:hidden;padding:2rem 2.35rem;border-radius:24px;color:white;
+      background:radial-gradient(circle at 86% 18%,rgba(115,211,180,.3),transparent 21%),linear-gradient(112deg,#123247 0%,#0e6670 67%,#168986 100%);margin:0 0 2rem;box-shadow:0 18px 44px rgba(16,57,69,.15);}
+    .hero:after {content:'✈';position:absolute;right:7%;top:4%;font-size:100px;opacity:.12;transform:rotate(-14deg);}
+    .hero-kicker {font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b9eadd;font-weight:700;margin-bottom:.65rem;}
+    .hero h1 {margin:0 0 .4rem;font-size:clamp(2rem,4vw,3rem);line-height:1.08;color:white;}
+    .hero p {margin:0;color:#d3e9e6;font-size:15px;max-width:700px;}
+    .page-heading {margin:.35rem 0 1.15rem;}
+    .page-heading p {margin:.2rem 0;color:var(--muted);font-size:14px;}
+    div[data-testid="stMetric"] {background:#fff;padding:1.05rem 1.15rem;border-radius:17px;border:1px solid var(--line);box-shadow:0 5px 18px rgba(22,52,61,.035);}
+    [data-testid="stMetricLabel"] {color:#71828b;font-size:12px;font-weight:600;}
+    [data-testid="stMetricValue"] {font-family:'Manrope',sans-serif;color:#173b49;font-size:27px;font-weight:800;}
+    div[data-testid="stPlotlyChart"] {background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 12px 2px;box-shadow:0 5px 18px rgba(22,52,61,.035);}
+    div[data-testid="stForm"] {background:#fff;border:1px solid var(--line);padding:1.2rem 1.35rem .7rem;border-radius:20px;box-shadow:0 8px 26px rgba(22,52,61,.045);}
+    div[data-testid="stTextInput"] input,div[data-testid="stNumberInput"] input {border-radius:10px;}
+    div[data-testid="stSelectbox"] [data-baseweb="select"] > div {border-radius:10px;}
+    div.stButton > button,div[data-testid="stFormSubmitButton"] button {border-radius:11px;padding:.55rem 1.15rem;font-weight:700;box-shadow:0 5px 13px rgba(8,126,131,.16);}
+    div[data-testid="stDataFrame"] {border:1px solid var(--line);border-radius:15px;overflow:hidden;}
+    hr {border-color:var(--line);}
+    #MainMenu, footer {visibility:hidden;}
     </style>
-    <div class="hero"><h1>Voyage</h1><p>Travel intelligence · flight estimates · personalized stays</p></div>
+    <div class="hero"><div class="hero-kicker">Travel intelligence, thoughtfully designed</div><h1>Make every journey<br>more informed.</h1><p>Explore travel patterns, estimate flight fares, and discover stays shaped by real historical data.</p></div>
     """, unsafe_allow_html=True)
 
 
@@ -67,11 +96,12 @@ st.set_page_config(page_title="Voyage · Travel Intelligence", page_icon="✈️
 flights, hotels, users = load_data()
 hero()
 
-page = st.sidebar.radio("Explore", ["Overview", "Flight price", "Name classifier", "Hotel finder"], label_visibility="visible")
-st.sidebar.caption("Models trained from the included Voyage travel datasets.")
+st.sidebar.markdown('<div class="brand"><div class="brand-mark">✦</div><div><div class="brand-name">Voyage</div><div class="brand-caption">Travel intelligence</div></div></div>', unsafe_allow_html=True)
+page = st.sidebar.radio("YOUR WORKSPACE", ["Overview", "Flight price", "Name classifier", "Hotel finder"], format_func=lambda item: {"Overview":"◫  Overview", "Flight price":"✈  Flight fares", "Name classifier":"◎  Name insights", "Hotel finder":"⌂  Hotel finder"}[item], label_visibility="visible")
+st.sidebar.markdown("<div style='margin:1.5rem .5rem 0;color:#aac1c5;font-size:12px;line-height:1.6'>Insights powered by the Voyage travel datasets.</div>", unsafe_allow_html=True)
 
 if page == "Overview":
-    st.subheader("Your travel data at a glance")
+    st.markdown("<div class='page-heading'><h2>Travel overview</h2><p>A closer look at routes, fares, stays, and traveler patterns in your dataset.</p></div>", unsafe_allow_html=True)
     a, b, c, d = st.columns(4)
     a.metric("Flight records", f"{len(flights):,}")
     b.metric("Hotel stays", f"{len(hotels):,}")
@@ -107,8 +137,7 @@ if page == "Overview":
     st.caption("Prices and model outputs reflect the historical data supplied with this project.")
 
 elif page == "Flight price":
-    st.subheader("Estimate a flight fare")
-    st.write("Choose a route and trip details to get a model estimate.")
+    st.markdown("<div class='page-heading'><h2>Flight fare estimator</h2><p>Adjust the trip details below to get an estimate from the trained Random Forest model.</p></div>", unsafe_allow_html=True)
     model, encoders = load_flight_model()
     with st.form("flight_form"):
         col1, col2, col3 = st.columns(3)
@@ -119,19 +148,19 @@ elif page == "Flight price":
         agency = col4.selectbox("Agency", sorted(encoders["agency"].classes_))
         duration = col5.number_input("Flight time (hours)", min_value=0.1, max_value=40.0, value=3.0, step=0.1)
         distance = col6.number_input("Distance (km)", min_value=1.0, max_value=20000.0, value=1000.0, step=50.0)
-        submitted = st.form_submit_button("Estimate fare", type="primary")
+        submitted = st.form_submit_button("✈  Estimate fare", type="primary", use_container_width=True)
     if submitted:
         values = [[encoders["from"].transform([origin])[0], encoders["to"].transform([destination])[0], encoders["flightType"].transform([cabin])[0], encoders["agency"].transform([agency])[0], duration, distance]]
         model_input = pd.DataFrame(values, columns=["from_num", "to_num", "flightType_num", "agency_num", "time", "distance"])
         fare = float(model.predict(model_input)[0])
-        st.success(f"Estimated fare: **${fare:,.2f}**")
-        st.caption("Estimate from the trained random forest. Actual fares can vary.")
+        st.markdown(f"<div class='hero' style='margin-top:1.3rem;padding:1.35rem 1.7rem'><div class='hero-kicker'>Predicted fare</div><h1 style='font-size:2.5rem'>${fare:,.2f}</h1><p>Based on the route, cabin, agency, duration, and distance you selected.</p></div>", unsafe_allow_html=True)
+        st.caption("Model estimate based on historical fares. Actual prices can vary.")
 
 elif page == "Name classifier":
-    st.subheader("Name based gender classification")
-    st.info("This experimental model infers a dataset label from a first name. It may be inaccurate and does not determine a person's identity.")
-    full_name = st.text_input("Enter a name", placeholder="e.g. Alex Morgan")
-    if st.button("Classify name", type="primary"):
+    st.markdown("<div class='page-heading'><h2>Name insights</h2><p>A lightweight model estimates the label most associated with a first name in this dataset.</p></div>", unsafe_allow_html=True)
+    st.info("Experimental prediction only. A name does not determine a person's gender or identity.")
+    full_name = st.text_input("First or full name", placeholder="e.g. Alex Morgan")
+    if st.button("✦  Analyze name", type="primary"):
         first_name = full_name.strip().split()[0] if full_name.strip() else ""
         if not first_name:
             st.warning("Enter a name to continue.")
@@ -140,19 +169,17 @@ elif page == "Name classifier":
                 classifier = load_gender_model()
                 label = classifier.predict([first_name])[0]
                 confidence = float(classifier.predict_proba([first_name]).max())
-            st.success(f"Model prediction: **{label.title()}**")
-            st.caption(f"Model confidence: {confidence:.0%}. This reflects the training data and may be wrong.")
+            st.markdown(f"<div class='hero' style='margin-top:1.3rem;padding:1.35rem 1.7rem'><div class='hero-kicker'>Most associated dataset label</div><h1 style='font-size:2.5rem'>{label.title()}</h1><p>Model confidence: {confidence:.0%} · This reflects training data and may be wrong.</p></div>", unsafe_allow_html=True)
 
 elif page == "Hotel finder":
-    st.subheader("Find a stay that fits")
-    st.write("Recommendations use historical hotel prices and stay lengths for each destination.")
+    st.markdown("<div class='page-heading'><h2>Find your kind of stay</h2><p>Discover hotels from historical bookings that match your destination, budget, and trip length.</p></div>", unsafe_allow_html=True)
     places = sorted(hotels["place"].dropna().unique().tolist())
     with st.form("hotel_form"):
         col1, col2, col3 = st.columns(3)
         city = col1.selectbox("Destination", places)
         budget = col2.slider("Nightly budget", 0, int(max(1000, hotels["price"].quantile(.98))), (100, 500), step=25)
         nights = col3.slider("Length of stay", 1, 14, (2, 5))
-        recommend = st.form_submit_button("Show stays", type="primary")
+        recommend = st.form_submit_button("⌕  Find matching stays", type="primary", use_container_width=True)
     if recommend:
         stays = hotels[(hotels["place"] == city) & hotels["price"].between(*budget) & hotels["days"].between(*nights)].copy()
         if stays.empty:
@@ -160,6 +187,7 @@ elif page == "Hotel finder":
         else:
             summary = stays.groupby("name", as_index=False).agg(nightly_price=("price", "median"), typical_nights=("days", "median"), observed_stays=("travelCode", "count"))
             summary = summary.sort_values(["nightly_price", "observed_stays"], ascending=[True, False]).head(10)
+            st.markdown(f"<div class='page-heading' style='margin-top:1.5rem'><h3>{len(summary)} stays to explore in {city}</h3><p>{len(stays)} matching historical bookings · nightly budget ${budget[0]:,}–${budget[1]:,}</p></div>", unsafe_allow_html=True)
             summary["nightly_price"] = summary["nightly_price"].map(lambda x: f"${x:,.2f}")
             summary["typical_nights"] = summary["typical_nights"].map(lambda x: f"{x:g}")
             st.dataframe(summary.rename(columns={"name":"Hotel", "nightly_price":"Median nightly price", "typical_nights":"Typical nights", "observed_stays":"Historical stays"}), hide_index=True, use_container_width=True)
